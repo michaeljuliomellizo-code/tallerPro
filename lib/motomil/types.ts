@@ -1,0 +1,7 @@
+export type OrderStatus="received"|"diagnosis"|"quote"|"approved"|"repair"|"quality"|"ready"|"delivered"|"cancelled";
+export type ItemType="service"|"labor"|"part"|"other";
+export type Customer={id:string;organization_id:string;full_name:string;document_number:string|null;email:string|null;phone:string|null;whatsapp:string|null;address:string|null;notes:string|null;active:boolean;created_at:string;updated_at:string};
+export type Motorcycle={id:string;organization_id:string;customer_id:string;plate:string;vin:string|null;brand:string;model:string;year:number|null;color:string|null;engine_cc:number|null;current_km:number;next_maintenance_km:number|null;next_maintenance_date:string|null;notes:string|null;active:boolean;created_at:string;updated_at:string};
+export type Mechanic={id:string;organization_id:string;user_id:string|null;full_name:string;phone:string|null;specialty:string|null;hourly_cost:number;active:boolean;created_at:string};
+export type InventoryProduct={id:string;organization_id:string;supplier_id:string|null;sku:string;name:string;category:string|null;brand:string|null;stock:number;minimum_stock:number;cost:number;sale_price:number;active:boolean;created_at:string;updated_at:string};
+export type ServiceOrderItem={id:string;service_order_id:string;item_type:ItemType;inventory_product_id:string|null;description:string;quantity:number;unit_cost:number;unit_price:number;created_at:string};

@@ -1,0 +1,1 @@
+"use client";export default function SupplierPurchaseHistory(){return <div className="card"><div className="section-head"><h2>Historial de compras</h2></div><div className="muted">La integración de órdenes de compra se habilitará sobre el módulo de compras de inventario.</div></div>}

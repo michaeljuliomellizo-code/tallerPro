@@ -1,0 +1,1 @@
+import Link from'next/link';export default function SettingsUsers(){return <div className="card"><div className="section-head"><h2>Usuarios y roles</h2></div><Link className="btn btn-secondary" href="/configuracion/usuarios">Administrar usuarios</Link></div>}

@@ -1,0 +1,1 @@
+import CrmClient from "@/components/crm-client-basic";export default function(){return <CrmClient/>}

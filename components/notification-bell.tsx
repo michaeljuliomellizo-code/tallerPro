@@ -1,0 +1,1 @@
+"use client";import Link from'next/link';import{Bell}from'lucide-react';export default function NotificationBell(){return <Link href="/notificaciones" className="btn btn-ghost" aria-label="Notificaciones"><Bell size={16}/></Link>}

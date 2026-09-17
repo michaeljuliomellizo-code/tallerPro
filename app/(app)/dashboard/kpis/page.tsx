@@ -1,0 +1,1 @@
+import DashboardKpis from "@/components/dashboard-kpis";export default function(){return <DashboardKpis/>}

@@ -1,0 +1,1 @@
+const L:any={pending:'Pendiente',partial:'Parcial',paid:'Pagada',cancelled:'Cancelada'};export default function InvoiceStatus({status}:{status:string}){const c=status==='paid'?'badge badge-success':status==='cancelled'?'badge badge-danger':'badge badge-warning';return <span className={c}>{L[status]??status}</span>}

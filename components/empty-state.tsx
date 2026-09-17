@@ -1,0 +1,1 @@
+export default function({title="Sin registros",description}:{title?:string;description?:string}){return <div className="empty" style={{padding:30,textAlign:"center"}}><strong>{title}</strong>{description&&<div className="muted">{description}</div>}</div>}

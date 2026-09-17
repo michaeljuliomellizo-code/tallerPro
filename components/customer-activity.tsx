@@ -1,0 +1,1 @@
+export default function CustomerActivity(){return <div className="card"><div className="section-head"><h2>Actividad del cliente</h2></div><div className="muted">La línea de actividad puede enriquecerse con citas, órdenes, pagos y comunicaciones.</div></div>}

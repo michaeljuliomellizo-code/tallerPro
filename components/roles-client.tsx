@@ -1,0 +1,1 @@
+"use client";import{ROLE_LABELS,ROLES}from'@/lib/motomil/roles';export default function RolesClient(){return <div className="card"><div className="section-head"><h2>Roles</h2></div><div className="grid grid-3">{ROLES.map(r=><div className="card" key={r}><strong>{ROLE_LABELS[r]}</strong><div className="muted" style={{marginTop:4}}>{r}</div></div>)}</div></div>}

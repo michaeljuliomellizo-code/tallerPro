@@ -1,0 +1,1 @@
+"use client";import{Printer}from'lucide-react';export default function PosPrintTicket(){return <button className="btn btn-secondary" onClick={()=>window.print()}><Printer size={14}/>Imprimir</button>}

@@ -1,0 +1,1 @@
+export default function({label}:{label:string}){return <span className="badge">{label}</span>}

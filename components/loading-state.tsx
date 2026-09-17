@@ -1,0 +1,1 @@
+export default function({label="Cargando..."}:{label?:string}){return <div className="card"><div style={{padding:30,textAlign:"center"}}>{label}</div></div>}

@@ -1,0 +1,1 @@
+import QuotationBoard from "@/components/quotation-board";export default function(){return <QuotationBoard/>}

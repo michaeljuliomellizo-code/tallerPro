@@ -1,0 +1,15 @@
+"use client";
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { createClient } from "@/lib/supabase/client";
+
+const supabase = createClient();
+interface Row { id:string; action:string; mechanic_id:string; mechanic_name?:string; snapshot:any; changed_at:string; changed_by:string|null; }
+interface Mechanic { id:string; full_name:string; }
+export default function MechanicsCommissionHistoryClient(){
+ const [rows,setRows]=useState<Row[]>([]); const [mechanics,setMechanics]=useState<Mechanic[]>([]); const [mechanic,setMechanic]=useState(""); const [loading,setLoading]=useState(true); const [error,setError]=useState("");
+ async function load(){setLoading(true);setError("");const {data:{user}}=await supabase.auth.getUser();if(!user){setError("No hay sesión activa.");setLoading(false);return;}const {data:mem}=await supabase.from("organization_members").select("organization_id").eq("user_id",user.id).maybeSingle();if(!mem){setError("No hay organización asignada.");setLoading(false);return;}const [{data:m},{data:h,error:he}]=await Promise.all([supabase.from("mechanics").select("id,full_name").eq("organization_id",mem.organization_id).order("full_name"),supabase.from("mechanic_commission_rule_history").select("id,action,mechanic_id,snapshot,changed_at,changed_by").eq("organization_id",mem.organization_id).order("changed_at",{ascending:false}).limit(500)]);if(he){setError(he.message);}else{setMechanics(m??[]);const map=new Map((m??[]).map(x=>[x.id,x.full_name]));setRows((h??[]).map((r:any)=>({...r,mechanic_name:map.get(r.mechanic_id)})));}setLoading(false);}
+ useEffect(()=>{load();},[]);
+ const filtered=mechanic?rows.filter(r=>r.mechanic_id===mechanic):rows;
+ return <><div className="section-head"><div><div className="eyebrow">Mecánicos</div><h1 className="page-title">Historial de comisiones</h1><p className="page-subtitle">Trazabilidad de cambios en las reglas de comisión.</p></div><Link href="/mecanicos" className="btn btn-ghost">Volver</Link></div><div className="card" style={{marginBottom:16}}><div className="field"><label>Mecánico</label><select value={mechanic} onChange={e=>setMechanic(e.target.value)}><option value="">Todos</option>{mechanics.map(m=><option key={m.id} value={m.id}>{m.full_name}</option>)}</select></div></div>{error&&<div className="notice error">{error}</div>}<div className="card"><div style={{overflowX:"auto"}}><table className="table"><thead><tr><th>Fecha</th><th>Acción</th><th>Mecánico</th><th>Regla</th><th>Usuario</th></tr></thead><tbody>{filtered.map(r=>{const s=r.snapshot||{};return <tr key={r.id}><td>{new Date(r.changed_at).toLocaleString("es-CO")}</td><td>{r.action}</td><td>{r.mechanic_name||r.mechanic_id}</td><td>{s.scope_type||"general"} · {s.commission_type||"percentage"} · {s.commission_value??0}{s.commission_type==="percentage"?"%":""}{s.service_name?` · ${s.service_name}`:""}{s.service_category?` · ${s.service_category}`:""}</td><td>{r.changed_by||"-"}</td></tr>})}</tbody></table>{loading&&<div className="empty">Cargando...</div>}{!loading&&!filtered.length&&<div className="empty">No hay historial.</div>}</div></div></>;
+}

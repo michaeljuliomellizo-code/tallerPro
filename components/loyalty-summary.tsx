@@ -1,0 +1,1 @@
+export default function LoyaltySummary({points=0}:{points?:number}){return <div className="card"><div className="muted">Puntos de fidelización</div><strong style={{fontSize:28}}>{points}</strong></div>}

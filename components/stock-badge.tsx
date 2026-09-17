@@ -1,0 +1,1 @@
+export default function({stock,min}:{stock:number;min:number}){const low=stock<=min;return <span className={`badge ${low?"":"badge-green"}`}>{low?"Stock bajo":"Stock OK"} · {stock}</span>}

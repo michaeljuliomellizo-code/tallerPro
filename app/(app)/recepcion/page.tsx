@@ -1,0 +1,1 @@
+import ReceptionBoard from "@/components/reception-board";export default function(){return <ReceptionBoard/>}

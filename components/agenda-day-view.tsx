@@ -1,0 +1,1 @@
+import AgendaCalendar from './agenda-calendar';export default function AgendaDayView({appointments,onSelect}:{appointments:any[];onSelect:(a:any)=>void}){const now=new Date().toISOString().slice(0,10);return <AgendaCalendar appointments={appointments.filter(a=>a.starts_at.slice(0,10)===now)} onSelect={onSelect}/>}

@@ -1,0 +1,1 @@
+import OrderStatusSummary from "@/components/order-status-summary";export default function(){return <OrderStatusSummary/>}

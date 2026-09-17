@@ -1,0 +1,1 @@
+export default function SettingsNumbering(){return <div className="card"><div className="section-head"><h2>Consecutivos</h2></div><div className="muted">Los consecutivos de POS, facturas y devoluciones se controlan mediante funciones SQL para garantizar concurrencia.</div></div>}

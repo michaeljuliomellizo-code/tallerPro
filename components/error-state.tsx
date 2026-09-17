@@ -1,0 +1,1 @@
+export default function({message}:{message:string}){return <div style={{padding:12,borderRadius:8,background:"#fff0f0",color:"#a52222"}}>{message}</div>}

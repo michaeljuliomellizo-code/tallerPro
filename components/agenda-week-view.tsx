@@ -1,0 +1,1 @@
+import AgendaCalendar from './agenda-calendar';export default function AgendaWeekView({appointments,onSelect}:{appointments:any[];onSelect:(a:any)=>void}){return <AgendaCalendar appointments={appointments} onSelect={onSelect}/>}

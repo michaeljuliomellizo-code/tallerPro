@@ -1,0 +1,1 @@
+export default function PortalNotifications(){return <div className="card"><div className="section-head"><h2>Notificaciones</h2></div><div className="muted">Las notificaciones del portal se habilitarán sobre eventos de órdenes, citas, cotizaciones y mantenimiento.</div></div>}

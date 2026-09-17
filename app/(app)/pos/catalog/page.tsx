@@ -1,0 +1,1 @@
+import PosCatalog from "@/components/pos-catalog";export default function(){return <PosCatalog/>}

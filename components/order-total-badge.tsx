@@ -1,0 +1,1 @@
+import{moneyCOP}from"@/lib/motomil/format";export default function({value}:{value:number}){return <span className="badge badge-green">{moneyCOP(value)}</span>}

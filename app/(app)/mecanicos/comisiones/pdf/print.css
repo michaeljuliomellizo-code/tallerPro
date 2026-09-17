@@ -1,0 +1,262 @@
+@page {
+  size: Letter;
+  margin: 0;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: #eef1f3;
+  color: #111318;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+body {
+  min-height: 100vh;
+}
+
+.sheet {
+  position: relative;
+  width: 8.5in;
+  min-height: 11in;
+  margin: 0 auto;
+  padding: 0.42in 0.48in 0.58in;
+  background: #fff;
+  overflow: hidden;
+}
+
+.sheet::before {
+  content: "";
+  position: absolute;
+  width: 4.8in;
+  height: 4.8in;
+  left: 1.85in;
+  top: 3.05in;
+  background: url("/assets/motomil-logo.png") center/contain no-repeat;
+  opacity: 0.035;
+  z-index: 0;
+}
+
+.sheet > * {
+  position: relative;
+  z-index: 1;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 18px;
+  border-bottom: 2px solid #111318;
+  padding-bottom: 11px;
+}
+
+.brand img {
+  width: 210px;
+  height: 100px;
+  object-fit: contain;
+}
+
+.org {
+  text-align: right;
+  color: #6b7280;
+  font-size: 9px;
+  line-height: 1.45;
+  max-width: 2.75in;
+}
+
+.orgName {
+  color: #111318;
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 3px;
+}
+
+.titleRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+  margin: 16px 0 12px;
+}
+
+h1 {
+  margin: 0 0 4px;
+  font-size: 21px;
+}
+
+h2 {
+  margin: 16px 0 6px;
+  color: #26313a;
+  font-size: 10px;
+  text-transform: uppercase;
+}
+
+.subtitle {
+  color: #6b7280;
+  font-size: 9px;
+}
+
+.period {
+  min-width: 1.85in;
+  padding: 9px 10px;
+  border-radius: 5px;
+  background: #ed1743;
+  color: #fff;
+  text-align: right;
+  font-size: 9px;
+}
+
+.period strong,
+.period span {
+  display: block;
+}
+
+.period strong {
+  font-size: 8px;
+  letter-spacing: 0.05em;
+  margin-bottom: 3px;
+}
+
+.metaGrid {
+  display: grid;
+  grid-template-columns: 1.35fr 0.55fr 1fr 1fr;
+  gap: 7px;
+}
+
+.metaGrid > div {
+  border: 1px solid #d9dee4;
+  border-radius: 5px;
+  padding: 8px;
+  min-height: 52px;
+}
+
+.metaGrid span {
+  display: block;
+  color: #ed1743;
+  font-size: 7px;
+  font-weight: 700;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.metaGrid strong {
+  font-size: 10px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 8.5px;
+}
+
+th {
+  background: #26313a;
+  color: #fff;
+  text-align: left;
+  padding: 6px 5px;
+}
+
+td {
+  border: 1px solid #d9dee4;
+  padding: 5px;
+  vertical-align: top;
+}
+
+.r {
+  text-align: right;
+}
+
+.muted {
+  color: #6b7280;
+  font-size: 7px;
+  margin-top: 2px;
+}
+
+.empty {
+  margin-top: 10px;
+  padding: 12px;
+  border: 1px dashed #bfc7cd;
+  color: #6b7280;
+  font-size: 9px;
+  text-align: center;
+}
+
+.totals {
+  margin-top: 12px;
+  margin-left: auto;
+  width: 3.3in;
+  border-top: 1px solid #d9dee4;
+  padding-top: 5px;
+}
+
+.totals > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 3px 0;
+  font-size: 9px;
+}
+
+.totals > div:last-child {
+  background: #111318;
+  color: #fff;
+  padding: 7px 8px;
+  border-radius: 4px;
+  margin-top: 3px;
+}
+
+.note {
+  margin-top: 14px;
+  padding: 8px 9px;
+  border-left: 3px solid #39e7c3;
+  background: #f4f7f8;
+  color: #4b5563;
+  font-size: 8px;
+  line-height: 1.45;
+}
+
+.signatures {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 35px;
+  margin-top: 28px;
+  font-size: 8px;
+  color: #6b7280;
+  text-align: center;
+}
+
+.line {
+  border-top: 1px solid #111318;
+  margin-bottom: 5px;
+}
+
+footer {
+  position: absolute;
+  left: 0.48in;
+  right: 0.48in;
+  bottom: 0.22in;
+  border-top: 1px solid #d9dee4;
+  padding-top: 6px;
+  display: flex;
+  justify-content: space-between;
+  gap: 15px;
+  color: #6b7280;
+  font-size: 7px;
+}
+
+@media print {
+  html,
+  body {
+    background: #fff;
+  }
+
+  .sheet {
+    margin: 0;
+  }
+}

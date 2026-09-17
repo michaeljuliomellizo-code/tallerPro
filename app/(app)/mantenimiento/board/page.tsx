@@ -1,0 +1,1 @@
+import MaintenanceBoard from "@/components/maintenance-board";export default function(){return <MaintenanceBoard/>}
