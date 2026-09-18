@@ -17,6 +17,7 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { money } from "@/lib/utils";
 import { getPortalCustomer } from "@/lib/motomil/portal";
+import { APP_CONFIG } from "@/lib/tallerpro/config";
 
 type Customer = {
   id: string;
@@ -353,7 +354,7 @@ export default function PortalClient() {
         }}
       >
         <div>
-          <div className="eyebrow">MotoMil · Portal</div>
+          <div className="eyebrow">{APP_CONFIG.name} · Portal</div>
           <h1 className="page-title">
             Hola, {customer?.full_name || "cliente"}
           </h1>
@@ -697,7 +698,7 @@ export default function PortalClient() {
       </div>
 
       <div className="muted" style={{ marginTop: 18, fontSize: 12 }}>
-        Portal de autoservicio MotoMil · Atención, seguimiento y aprobación digital de servicios.
+        Portal de autoservicio {APP_CONFIG.name} · Atención, seguimiento y aprobación digital de servicios.
       </div>
 
       {selectedQuote && (

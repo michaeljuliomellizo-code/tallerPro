@@ -4,6 +4,7 @@ import { FormEvent, useState } from "react";
 import { ArrowRight, ShieldCheck } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/client";
+import { APP_CONFIG } from "@/lib/tallerpro/config";
 
 export default function PortalLogin() {
   const supabase = createClient();
@@ -55,7 +56,7 @@ export default function PortalLogin() {
     >
       <div style={{ width: "min(460px, 100%)" }}>
         <div style={{ textAlign: "center", marginBottom: 20 }}>
-          <div className="eyebrow">MotoMil</div>
+          <div className="eyebrow">{APP_CONFIG.name}</div>
           <h1 className="page-title" style={{ marginBottom: 6 }}>
             Portal del cliente
           </h1>
@@ -142,7 +143,7 @@ export default function PortalLogin() {
           className="muted"
           style={{ textAlign: "center", marginTop: 12, fontSize: 12 }}
         >
-          El acceso al portal está separado de la administración interna de MotoMil.
+          El acceso al portal está separado de la administración interna de {APP_CONFIG.name}.
         </div>
       </div>
     </main>

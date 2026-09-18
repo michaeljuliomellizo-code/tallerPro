@@ -540,7 +540,7 @@ export default function AgendaClient() {
                 <div className="eyebrow">Agenda</div>
                 <h2>Nueva cita</h2>
                 <p className="page-subtitle">
-                  Registra la cita con el mismo formulario visual utilizado en el resto de MotoMil.
+                  Registra la cita.
                 </p>
               </div>
 
