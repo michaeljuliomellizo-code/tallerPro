@@ -1,1 +1,7 @@
-export async function GET(){ return Response.json({status:"ok",service:"motomil-taller",timestamp:new Date().toISOString()}); }
+export async function GET() {
+  return Response.json({
+    status: "ok",
+    service: "tallerpro",
+    timestamp: new Date().toISOString(),
+  });
+}

@@ -34,10 +34,15 @@ export type PdfInvoiceData = {
   } | null;
   organization: {
     name: string;
+    legal_name?: string | null;
     nit?: string | null;
+    tax_id?: string | null;
     phone?: string | null;
     email?: string | null;
     address?: string | null;
+    city?: string | null;
+    logo_url?: string | null;
+    document_footer?: string | null;
   } | null;
   order: {
     order_number: number | string;
@@ -88,7 +93,7 @@ const styles = StyleSheet.create({
     top: 300,
     left: 145,
     width: 300,
-    opacity: 0.055,
+    opacity: 0.045,
   },
   header: {
     flexDirection: "row",
@@ -99,7 +104,17 @@ const styles = StyleSheet.create({
     borderBottomColor: C.black,
   },
   logo: { width: 205, height: 105, objectFit: "contain" },
-  orgBlock: { alignItems: "flex-end", marginTop: 3 },
+  fallbackLogo: {
+    width: 100,
+    height: 70,
+    backgroundColor: C.black,
+    color: C.white,
+    alignItems: "center",
+    justifyContent: "center",
+    fontFamily: "Helvetica-Bold",
+    fontSize: 24,
+  },
+  orgBlock: { alignItems: "flex-end", marginTop: 3, maxWidth: 240 },
   orgName: { fontSize: 13, fontFamily: "Helvetica-Bold", marginBottom: 4 },
   meta: { color: C.gray, marginBottom: 2 },
   titleRow: {
@@ -143,8 +158,18 @@ const styles = StyleSheet.create({
     color: C.dark,
     textTransform: "uppercase",
   },
-  table: { borderWidth: 1, borderColor: C.line, borderRadius: 5, overflow: "hidden" },
-  tr: { flexDirection: "row", minHeight: 22, borderBottomWidth: 1, borderBottomColor: C.line },
+  table: {
+    borderWidth: 1,
+    borderColor: C.line,
+    borderRadius: 5,
+    overflow: "hidden",
+  },
+  tr: {
+    flexDirection: "row",
+    minHeight: 22,
+    borderBottomWidth: 1,
+    borderBottomColor: C.line,
+  },
   trLast: { flexDirection: "row", minHeight: 22 },
   th: { backgroundColor: C.dark, color: C.white, fontFamily: "Helvetica-Bold" },
   cell: { padding: 6, justifyContent: "center" },
@@ -201,49 +226,161 @@ function status(value: string) {
   return map[value] ?? value;
 }
 
-export default function InvoicePdfDocument({ data }: { data: PdfInvoiceData }) {
-  const balance = Math.max(0, data.total - data.paid);
+export default function InvoicePdfDocument({
+  data,
+}: {
+  data: PdfInvoiceData;
+}) {
+  const balance = Math.max(
+    0,
+    data.total - data.paid
+  );
+
+  const organizationName =
+    data.organization?.name ||
+    data.organization?.legal_name ||
+    "Taller de motocicletas";
+
+  const nit =
+    data.organization?.tax_id ||
+    data.organization?.nit ||
+    "";
+
+  const footer =
+    data.organization?.document_footer ||
+    `${organizationName} · Documento generado mediante TallerPro`;
+
   return (
-    <Document title={`Factura ${data.invoice_number}`} author="MotoMil">
+    <Document
+      title={`Factura ${data.invoice_number}`}
+      author="TallerPro"
+    >
       <Page size="LETTER" style={styles.page} wrap>
-        <Image src="/assets/motomil-logo.png" style={styles.watermark} fixed />
+        {data.organization?.logo_url ? (
+          <Image
+            src={data.organization.logo_url}
+            style={styles.watermark}
+            fixed
+          />
+        ) : null}
 
         <View style={styles.header}>
-          <Image src="/assets/motomil-logo.png" style={styles.logo} />
+          {data.organization?.logo_url ? (
+            <Image
+              src={data.organization.logo_url}
+              style={styles.logo}
+            />
+          ) : (
+            <View style={styles.fallbackLogo}>
+              <Text>{organizationName.slice(0, 2).toUpperCase()}</Text>
+            </View>
+          )}
+
           <View style={styles.orgBlock}>
-            <Text style={styles.orgName}>{data.organization?.name || "MotoMil Taller"}</Text>
-            {data.organization?.nit ? <Text style={styles.meta}>NIT: {data.organization.nit}</Text> : null}
-            {data.organization?.address ? <Text style={styles.meta}>{data.organization.address}</Text> : null}
-            {data.organization?.phone ? <Text style={styles.meta}>Tel: {data.organization.phone}</Text> : null}
-            {data.organization?.email ? <Text style={styles.meta}>{data.organization.email}</Text> : null}
+            <Text style={styles.orgName}>
+              {organizationName}
+            </Text>
+
+            {data.organization?.legal_name &&
+            data.organization.legal_name !== data.organization.name ? (
+              <Text style={styles.meta}>
+                {data.organization.legal_name}
+              </Text>
+            ) : null}
+
+            {nit ? (
+              <Text style={styles.meta}>NIT: {nit}</Text>
+            ) : null}
+
+            {data.organization?.address ? (
+              <Text style={styles.meta}>
+                {data.organization.address}
+              </Text>
+            ) : null}
+
+            {data.organization?.city ? (
+              <Text style={styles.meta}>
+                {data.organization.city}
+              </Text>
+            ) : null}
+
+            {data.organization?.phone ? (
+              <Text style={styles.meta}>
+                Tel: {data.organization.phone}
+              </Text>
+            ) : null}
+
+            {data.organization?.email ? (
+              <Text style={styles.meta}>
+                {data.organization.email}
+              </Text>
+            ) : null}
           </View>
         </View>
 
         <View style={styles.titleRow}>
           <View>
             <Text style={styles.title}>FACTURA DE VENTA</Text>
-            <Text style={styles.muted}>Fecha de emisión: {date(data.issued_at)}</Text>
+            <Text style={styles.muted}>
+              Fecha de emisión: {date(data.issued_at)}
+            </Text>
           </View>
-          <Text style={styles.invoiceNumber}>{data.invoice_number}</Text>
+          <Text style={styles.invoiceNumber}>
+            {data.invoice_number}
+          </Text>
         </View>
 
         <View style={styles.grid2}>
           <View style={styles.box}>
             <Text style={styles.boxTitle}>Cliente</Text>
-            <Text style={styles.strong}>{data.customer?.full_name || "Cliente no registrado"}</Text>
-            {data.customer?.document_number ? <Text style={styles.muted}>Documento: {data.customer.document_number}</Text> : null}
-            {data.customer?.phone ? <Text style={styles.muted}>Tel: {data.customer.phone}</Text> : null}
-            {data.customer?.email ? <Text style={styles.muted}>{data.customer.email}</Text> : null}
+            <Text style={styles.strong}>
+              {data.customer?.full_name ||
+                "Cliente no registrado"}
+            </Text>
+            {data.customer?.document_number ? (
+              <Text style={styles.muted}>
+                Documento: {data.customer.document_number}
+              </Text>
+            ) : null}
+            {data.customer?.phone ? (
+              <Text style={styles.muted}>
+                Tel: {data.customer.phone}
+              </Text>
+            ) : null}
+            {data.customer?.email ? (
+              <Text style={styles.muted}>
+                {data.customer.email}
+              </Text>
+            ) : null}
           </View>
+
           <View style={styles.box}>
             <Text style={styles.boxTitle}>Orden de servicio</Text>
             {data.order ? (
               <>
-                <Text style={styles.strong}>OS #{data.order.order_number}</Text>
-                {data.order.motorcycle ? <Text style={styles.muted}>{data.order.motorcycle.brand} {data.order.motorcycle.model} · {data.order.motorcycle.plate}</Text> : null}
-                {data.order.motorcycle?.year ? <Text style={styles.muted}>Año: {data.order.motorcycle.year}</Text> : null}
-                {data.order.mileage != null ? <Text style={styles.muted}>Kilometraje: {Number(data.order.mileage).toLocaleString("es-CO")} km</Text> : null}
-                {data.order.mechanic ? <Text style={styles.muted}>Mecánico: {data.order.mechanic.full_name}</Text> : null}
+                <Text style={styles.strong}>
+                  OS #{data.order.order_number}
+                </Text>
+                {data.order.motorcycle ? (
+                  <Text style={styles.muted}>
+                    {data.order.motorcycle.brand} {data.order.motorcycle.model} · {data.order.motorcycle.plate}
+                  </Text>
+                ) : null}
+                {data.order.motorcycle?.year ? (
+                  <Text style={styles.muted}>
+                    Año: {data.order.motorcycle.year}
+                  </Text>
+                ) : null}
+                {data.order.mileage != null ? (
+                  <Text style={styles.muted}>
+                    Kilometraje: {Number(data.order.mileage).toLocaleString("es-CO")} km
+                  </Text>
+                ) : null}
+                {data.order.mechanic ? (
+                  <Text style={styles.muted}>
+                    Mecánico: {data.order.mechanic.full_name}
+                  </Text>
+                ) : null}
               </>
             ) : (
               <Text style={styles.strong}>Venta directa</Text>
@@ -251,20 +388,27 @@ export default function InvoicePdfDocument({ data }: { data: PdfInvoiceData }) {
           </View>
         </View>
 
-        {data.order?.diagnosis ? (
+        {data.order?.diagnosis || data.order?.observations ? (
           <View style={styles.grid2}>
             <View style={styles.box}>
               <Text style={styles.boxTitle}>Diagnóstico</Text>
-              <Text style={styles.muted}>{data.order.diagnosis}</Text>
+              <Text style={styles.muted}>
+                {data.order.diagnosis || "-"}
+              </Text>
             </View>
             <View style={styles.box}>
               <Text style={styles.boxTitle}>Observaciones</Text>
-              <Text style={styles.muted}>{data.order.observations || "-"}</Text>
+              <Text style={styles.muted}>
+                {data.order.observations || "-"}
+              </Text>
             </View>
           </View>
         ) : null}
 
-        <Text style={styles.sectionTitle}>Detalle de servicios y repuestos</Text>
+        <Text style={styles.sectionTitle}>
+          Detalle de servicios y repuestos
+        </Text>
+
         <View style={styles.table}>
           <View style={[styles.tr, styles.th]}>
             <Text style={[styles.cell, styles.desc]}>Descripción</Text>
@@ -273,40 +417,100 @@ export default function InvoicePdfDocument({ data }: { data: PdfInvoiceData }) {
             <Text style={[styles.cell, styles.unit]}>V. unit.</Text>
             <Text style={[styles.cell, styles.total]}>Total</Text>
           </View>
-          {(data.items.length ? data.items : [{ description: "Servicios y conceptos de la factura", item_type: "other", quantity: 1, unit_price: data.subtotal, total: data.subtotal }]).map((item, index, arr) => (
-            <View key={`${item.description}-${index}`} style={index === arr.length - 1 ? styles.trLast : styles.tr} wrap={false}>
-              <Text style={[styles.cell, styles.desc]}>{item.description}</Text>
-              <Text style={[styles.cell, styles.type]}>{itemType(item.item_type)}</Text>
-              <Text style={[styles.cell, styles.qty]}>{item.quantity}</Text>
-              <Text style={[styles.cell, styles.unit]}>{money(item.unit_price)}</Text>
-              <Text style={[styles.cell, styles.total]}>{money(item.total)}</Text>
+
+          {(data.items.length
+            ? data.items
+            : [
+                {
+                  description:
+                    "Servicios y conceptos de la factura",
+                  item_type: "other",
+                  quantity: 1,
+                  unit_price: data.subtotal,
+                  total: data.subtotal,
+                },
+              ]
+          ).map((item, index, arr) => (
+            <View
+              key={`${item.description}-${index}`}
+              style={
+                index === arr.length - 1
+                  ? styles.trLast
+                  : styles.tr
+              }
+              wrap={false}
+            >
+              <Text style={[styles.cell, styles.desc]}>
+                {item.description}
+              </Text>
+              <Text style={[styles.cell, styles.type]}>
+                {itemType(item.item_type)}
+              </Text>
+              <Text style={[styles.cell, styles.qty]}>
+                {item.quantity}
+              </Text>
+              <Text style={[styles.cell, styles.unit]}>
+                {money(item.unit_price)}
+              </Text>
+              <Text style={[styles.cell, styles.total]}>
+                {money(item.total)}
+              </Text>
             </View>
           ))}
         </View>
 
         <View style={styles.totalsWrap}>
           <View style={styles.totals}>
-            <View style={styles.totalLine}><Text>Subtotal</Text><Text>{money(data.subtotal)}</Text></View>
-            <View style={styles.totalLine}><Text>Impuestos</Text><Text>{money(data.tax)}</Text></View>
-            <View style={styles.grandTotal}><Text style={styles.strong}>TOTAL</Text><Text style={styles.strong}>{money(data.total)}</Text></View>
-            <View style={styles.totalLine}><Text>Pagado</Text><Text>{money(data.paid)}</Text></View>
-            <View style={styles.totalLine}><Text>Saldo</Text><Text>{money(balance)}</Text></View>
+            <View style={styles.totalLine}>
+              <Text>Subtotal</Text>
+              <Text>{money(data.subtotal)}</Text>
+            </View>
+            <View style={styles.totalLine}>
+              <Text>Impuestos</Text>
+              <Text>{money(data.tax)}</Text>
+            </View>
+            <View style={styles.grandTotal}>
+              <Text style={styles.strong}>TOTAL</Text>
+              <Text style={styles.strong}>
+                {money(data.total)}
+              </Text>
+            </View>
+            <View style={styles.totalLine}>
+              <Text>Pagado</Text>
+              <Text>{money(data.paid)}</Text>
+            </View>
+            <View style={styles.totalLine}>
+              <Text>Saldo</Text>
+              <Text>{money(balance)}</Text>
+            </View>
           </View>
         </View>
 
-        <View style={{ marginTop: 15, flexDirection: "row", justifyContent: "space-between" }}>
+        <View
+          style={{
+            marginTop: 15,
+            flexDirection: "row",
+            justifyContent: "space-between",
+          }}
+        >
           <View>
-            <Text style={styles.strong}>Estado: {status(data.status)}</Text>
-            <Text style={styles.muted}>Vencimiento: {date(data.due_at)}</Text>
+            <Text style={styles.strong}>
+              Estado: {status(data.status)}
+            </Text>
+            <Text style={styles.muted}>
+              Vencimiento: {date(data.due_at)}
+            </Text>
           </View>
-          <View style={{ alignItems: "flex-end" }}>
-            <Text style={styles.strong}>Gracias por confiar en MotoMil</Text>
-            <Text style={styles.muted}>Todo el taller bajo control.</Text>
+          <View style={{ alignItems: "flex-end", maxWidth: 250 }}>
+            <Text style={styles.strong}>
+              {organizationName}
+            </Text>
+            <Text style={styles.muted}>{footer}</Text>
           </View>
         </View>
 
         <View style={styles.footer} fixed>
-          <Text>MotoMil Taller · Documento generado por el sistema</Text>
+          <Text>{footer}</Text>
           <Text>{data.invoice_number}</Text>
         </View>
       </Page>

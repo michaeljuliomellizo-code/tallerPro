@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { createWorkshopLogoSignedUrl } from "@/lib/tallerpro/workshop-storage";
 
 interface Row {
   service_order_id: string;
@@ -29,26 +30,30 @@ interface Organization {
   name: string | null;
   legal_name: string | null;
   tax_id: string | null;
+  nit: string | null;
   phone: string | null;
   email: string | null;
   address: string | null;
   city: string | null;
+  country: string | null;
+  currency: string | null;
+  logo_url: string | null;
 }
 
-const money = (value: number) =>
+const money = (value: number, currency = "COP") =>
   new Intl.NumberFormat("es-CO", {
     style: "currency",
-    currency: "COP",
+    currency,
     maximumFractionDigits: 0,
-  }).format(value);
+  }).format(Number(value || 0));
 
 const date = (value: string) => {
   if (!value) return "-";
   return new Date(`${value}T00:00:00`).toLocaleDateString("es-CO");
 };
 
-function esc(value: string) {
-  return value.replace(/[&<>\"]/g, (char) =>
+function esc(value: unknown) {
+  return String(value ?? "").replace(/[&<>\"]/g, (char) =>
     ({
       "&": "&amp;",
       "<": "&lt;",
@@ -63,6 +68,7 @@ export default function MechanicsCommissionPdfPage() {
   const [rows, setRows] = useState<Row[]>([]);
   const [mechanicName, setMechanicName] = useState("Todos los mecánicos");
   const [organization, setOrganization] = useState<Organization | null>(null);
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [start, setStart] = useState("");
   const [end, setEnd] = useState("");
   const [loading, setLoading] = useState(true);
@@ -81,7 +87,7 @@ export default function MechanicsCommissionPdfPage() {
     setStart(startParam);
     setEnd(endParam);
 
-    (async () => {
+    void (async () => {
       try {
         const {
           data: { user },
@@ -100,27 +106,34 @@ export default function MechanicsCommissionPdfPage() {
           throw new Error("No hay una organización asignada.");
         }
 
-        const [{ data: report, error: reportError }, { data: org }, { data: mechanics }] =
-          await Promise.all([
-            supabase.rpc("get_mechanic_commission_report", {
-              p_start_date: startParam,
-              p_end_date: endParam,
-              p_mechanic_id: mechanicParam || null,
-              p_branch_id: branchParam || null,
-              p_payment_status: paymentParam || null,
-            }),
-            supabase
-              .from("organizations")
-              .select("name,legal_name,tax_id,phone,email,address,city")
-              .eq("id", membership.organization_id)
-              .maybeSingle(),
-            supabase
-              .from("mechanics")
-              .select("id,full_name")
-              .eq("organization_id", membership.organization_id),
-          ]);
+        const [
+          { data: report, error: reportError },
+          { data: org, error: organizationError },
+          { data: mechanics, error: mechanicsError },
+        ] = await Promise.all([
+          supabase.rpc("get_mechanic_commission_report", {
+            p_start_date: startParam,
+            p_end_date: endParam,
+            p_mechanic_id: mechanicParam || null,
+            p_branch_id: branchParam || null,
+            p_payment_status: paymentParam || null,
+          }),
+          supabase
+            .from("organizations")
+            .select(
+              "name,legal_name,tax_id,nit,phone,email,address,city,country,currency,logo_url"
+            )
+            .eq("id", membership.organization_id)
+            .maybeSingle(),
+          supabase
+            .from("mechanics")
+            .select("id,full_name")
+            .eq("organization_id", membership.organization_id),
+        ]);
 
         if (reportError) throw reportError;
+        if (organizationError) throw organizationError;
+        if (mechanicsError) throw mechanicsError;
 
         const filtered = ((report ?? []) as Row[]).filter(
           (row) =>
@@ -134,11 +147,25 @@ export default function MechanicsCommissionPdfPage() {
         setRows(filtered);
         setOrganization((org ?? null) as Organization | null);
 
+        if (org?.logo_url) {
+          try {
+            const signedUrl = await createWorkshopLogoSignedUrl(
+              supabase,
+              org.logo_url,
+            );
+            setLogoUrl(signedUrl);
+          } catch {
+            setLogoUrl(null);
+          }
+        }
+
         const selectedMechanic = (mechanics ?? []).find(
           (item: Mechanic) => item.id === mechanicParam,
         );
 
-        setMechanicName(selectedMechanic?.full_name ?? "Todos los mecánicos");
+        setMechanicName(
+          selectedMechanic?.full_name ?? "Todos los mecánicos",
+        );
       } catch (err) {
         setError(
           err instanceof Error
@@ -150,6 +177,8 @@ export default function MechanicsCommissionPdfPage() {
       }
     })();
   }, [supabase]);
+
+  const currency = organization?.currency || "COP";
 
   const laborTotal = rows.reduce(
     (sum, row) => sum + Number(row.labor_amount || 0),
@@ -184,68 +213,141 @@ export default function MechanicsCommissionPdfPage() {
     return Array.from(map.values()).map((item) => ({
       ...item,
       orderCount: item.orders.size,
-      effectiveRate: item.labor > 0 ? (item.commission / item.labor) * 100 : 0,
+      effectiveRate:
+        item.labor > 0
+          ? (item.commission / item.labor) * 100
+          : 0,
     }));
   }, [rows]);
 
   useEffect(() => {
     if (loading || error) return;
-    const timer = window.setTimeout(() => window.print(), 500);
+
+    const timer = window.setTimeout(() => {
+      window.print();
+    }, 700);
+
     return () => window.clearTimeout(timer);
   }, [loading, error]);
 
-  if (loading) return <div style={{ padding: 24 }}>Generando reporte...</div>;
-  if (error) return <div style={{ padding: 24, color: "#a52222" }}>{error}</div>;
+  if (loading) {
+    return (
+      <div style={{ padding: 24, fontFamily: "Arial, sans-serif" }}>
+        Generando reporte...
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div
+        style={{
+          padding: 24,
+          color: "#a52222",
+          fontFamily: "Arial, sans-serif",
+        }}
+      >
+        {error}
+      </div>
+    );
+  }
+
+  const workshopName =
+    organization?.name ||
+    organization?.legal_name ||
+    "Taller de motocicletas";
+
+  const legalName =
+    organization?.legal_name &&
+    organization.legal_name !== organization.name
+      ? organization.legal_name
+      : "";
+
+  const nit =
+    organization?.tax_id ||
+    organization?.nit ||
+    "";
 
   return (
     <div className="sheet">
       <div className="header">
         <div className="brand">
-          <img src="/assets/motomil-logo.png" alt="MotoMil" />
+          {logoUrl ? (
+            <img
+              src={logoUrl}
+              alt={`Logo ${workshopName}`}
+            />
+          ) : (
+            <div className="logoFallback">
+              {workshopName.slice(0, 2).toUpperCase()}
+            </div>
+          )}
         </div>
+
         <div className="org">
           <div className="orgName">
-            {organization?.legal_name || organization?.name || "MotoMil Taller"}
+            {esc(workshopName)}
           </div>
-          {organization?.tax_id && <div>NIT: {organization.tax_id}</div>}
-          {organization?.address && <div>{organization.address}</div>}
-          {organization?.city && <div>{organization.city}</div>}
-          {organization?.phone && <div>Tel: {organization.phone}</div>}
-          {organization?.email && <div>{organization.email}</div>}
+
+          {legalName && <div>{esc(legalName)}</div>}
+          {nit && <div>NIT: {esc(nit)}</div>}
+          {organization?.address && (
+            <div>{esc(organization.address)}</div>
+          )}
+          {organization?.city && (
+            <div>{esc(organization.city)}</div>
+          )}
+          {organization?.phone && (
+            <div>Tel: {esc(organization.phone)}</div>
+          )}
+          {organization?.email && (
+            <div>{esc(organization.email)}</div>
+          )}
         </div>
       </div>
 
       <div className="titleRow">
         <div>
           <h1>LIQUIDACIÓN DE COMISIONES</h1>
-          <div className="subtitle">Comisiones de mecánicos - solo mano de obra</div>
+          <div className="subtitle">
+            Comisiones de mecánicos - solo mano de obra
+          </div>
         </div>
+
         <div className="period">
           <strong>PERÍODO</strong>
-          <span>{date(start)} - {date(end)}</span>
+          <span>
+            {date(start)} - {date(end)}
+          </span>
         </div>
       </div>
 
       <div className="metaGrid">
         <div>
-          <span>MECÁNICO</span>
-          <strong>{mechanicName}</strong>
+          <span>MECÁNICO</span>
+          <strong>{esc(mechanicName)}</strong>
         </div>
+
         <div>
           <span>LÍNEAS</span>
           <strong>{rows.length}</strong>
         </div>
+
         <div>
           <span>MANO DE OBRA</span>
-          <strong>{money(laborTotal)}</strong>
+          <strong>{money(laborTotal, currency)}</strong>
         </div>
+
         <div>
           <span>COMISIÓN TOTAL</span>
-          <strong>{money(commissionTotal)}</strong>
+          <strong>
+            {money(commissionTotal, currency)}
+          </strong>
         </div>
       </div>
 
       <h2>Resumen por mecánico</h2>
+
       <table>
         <thead>
           <tr>
@@ -256,20 +358,30 @@ export default function MechanicsCommissionPdfPage() {
             <th className="r">Comisión</th>
           </tr>
         </thead>
+
         <tbody>
           {byMechanic.map((item) => (
             <tr key={item.name}>
               <td>{esc(item.name)}</td>
               <td className="r">{item.orderCount}</td>
-              <td className="r">{money(item.labor)}</td>
-              <td className="r">{item.effectiveRate.toFixed(2)}%</td>
-              <td className="r"><strong>{money(item.commission)}</strong></td>
+              <td className="r">
+                {money(item.labor, currency)}
+              </td>
+              <td className="r">
+                {item.effectiveRate.toFixed(2)}%
+              </td>
+              <td className="r">
+                <strong>
+                  {money(item.commission, currency)}
+                </strong>
+              </td>
             </tr>
           ))}
         </tbody>
       </table>
 
       <h2>Detalle de servicios liquidados</h2>
+
       <table>
         <thead>
           <tr>
@@ -282,6 +394,7 @@ export default function MechanicsCommissionPdfPage() {
             <th className="r">Comisión</th>
           </tr>
         </thead>
+
         <tbody>
           {rows.map((row, index) => (
             <tr key={`${row.service_order_id}-${index}`}>
@@ -289,45 +402,88 @@ export default function MechanicsCommissionPdfPage() {
               <td>{date(row.service_date)}</td>
               <td>{esc(row.mechanic_name)}</td>
               <td>
-                {esc(row.service_description || "Mano de obra")}
+                {esc(
+                  row.service_description ||
+                    "Mano de obra",
+                )}
+
                 {row.service_category ? (
-                  <div className="muted">{esc(row.service_category)}</div>
+                  <div className="muted">
+                    {esc(row.service_category)}
+                  </div>
                 ) : null}
               </td>
-              <td className="r">{money(Number(row.labor_amount))}</td>
+              <td className="r">
+                {money(
+                  Number(row.labor_amount),
+                  currency,
+                )}
+              </td>
               <td className="r">
                 {row.commission_type === "percentage"
                   ? `${row.commission_value}%`
-                  : `${money(Number(row.commission_value))}/u`}
+                  : `${money(
+                      Number(row.commission_value),
+                      currency,
+                    )}/u`}
               </td>
-              <td className="r"><strong>{money(Number(row.commission_amount))}</strong></td>
+              <td className="r">
+                <strong>
+                  {money(
+                    Number(row.commission_amount),
+                    currency,
+                  )}
+                </strong>
+              </td>
             </tr>
           ))}
         </tbody>
       </table>
 
       {rows.length === 0 && (
-        <div className="empty">No hay actividades de comisión para este período.</div>
+        <div className="empty">
+          No hay actividades de comisión para este período.
+        </div>
       )}
 
       <div className="totals">
-        <div><span>Mano de obra liquidada</span><strong>{money(laborTotal)}</strong></div>
-        <div><span>Comisión</span><strong>{money(commissionTotal)}</strong></div>
+        <div>
+          <span>Mano de obra liquidada</span>
+          <strong>{money(laborTotal, currency)}</strong>
+        </div>
+
+        <div>
+          <span>Comisión</span>
+          <strong>
+            {money(commissionTotal, currency)}
+          </strong>
+        </div>
       </div>
 
       <div className="note">
-        La comisión se calcula únicamente sobre conceptos de mano de obra.
-        Los repuestos e inventario no forman parte de la base de comisión.
+        La comisión se calcula únicamente sobre conceptos de
+        mano de obra. Los repuestos e inventario no forman parte
+        de la base de comisión.
       </div>
 
       <div className="signatures">
-        <div><div className="line" />Responsable de liquidación</div>
-        <div><div className="line" />Mecánico / Recibido</div>
+        <div>
+          <div className="line" />
+          Responsable de liquidación
+        </div>
+        <div>
+          <div className="line" />
+          Mecánico / Recibido
+        </div>
       </div>
 
       <footer>
-        <span>MotoMil Taller - Liquidación generada por el sistema</span>
-        <span>{new Date().toLocaleString("es-CO")}</span>
+        <span>
+          {esc(workshopName)} · Liquidación generada mediante TallerPro
+        </span>
+        <span>
+          {new Date().toLocaleString("es-CO")}
+        </span>
       </footer>
     </div>
   );
