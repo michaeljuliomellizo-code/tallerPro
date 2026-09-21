@@ -85,54 +85,85 @@ export default function MechanicsCommissionReportClient() {
     const [loading, setLoading] =
         useState(false);
     const [error, setError] = useState("");
+    const [periodReady, setPeriodReady] =
+        useState(false);
+    const [periodName, setPeriodName] =
+        useState("");
 
     useEffect(() => {
         (async () => {
-            const {
-                data: { user },
-            } = await supabase.auth.getUser();
+            try {
+                const {
+                    data: { user },
+                } = await supabase.auth.getUser();
 
-            if (!user) return;
+                if (!user) {
+                    setPeriodReady(true);
+                    return;
+                }
 
-            const { data: mem } = await supabase
-                .from("organization_members")
-                .select("organization_id")
-                .eq("user_id", user.id)
-                .maybeSingle();
+                const { data: mem, error: membershipError } = await supabase
+                    .from("organization_members")
+                    .select("organization_id")
+                    .eq("user_id", user.id)
+                    .maybeSingle();
 
-            if (!mem) return;
+                if (membershipError) throw membershipError;
+                if (!mem?.organization_id) {
+                    setPeriodReady(true);
+                    return;
+                }
 
-            const [
-                { data: m },
-                { data: b },
-            ] = await Promise.all([
-                supabase
-                    .from("mechanics")
-                    .select(
-                        "id,full_name,branch_id"
-                    )
-                    .eq(
-                        "organization_id",
-                        mem.organization_id
-                    )
-                    .order("full_name"),
+                const [
+                    { data: m },
+                    { data: b },
+                    { data: latestClosed, error: periodError },
+                ] = await Promise.all([
+                    supabase
+                        .from("mechanics")
+                        .select("id,full_name,branch_id")
+                        .eq("organization_id", mem.organization_id)
+                        .order("full_name"),
+                    supabase
+                        .from("branches")
+                        .select("id,name")
+                        .eq("organization_id", mem.organization_id)
+                        .order("name"),
+                    supabase
+                        .from("payroll_periods")
+                        .select("id,name,starts_on,ends_on,status")
+                        .eq("organization_id", mem.organization_id)
+                        .eq("status", "closed")
+                        .order("starts_on", { ascending: false })
+                        .limit(1)
+                        .maybeSingle(),
+                ]);
 
-                supabase
-                    .from("branches")
-                    .select("id,name")
-                    .eq(
-                        "organization_id",
-                        mem.organization_id
-                    )
-                    .order("name"),
-            ]);
+                if (periodError) throw periodError;
 
-            setMechanics(m ?? []);
-            setBranches(b ?? []);
+                setMechanics(m ?? []);
+                setBranches(b ?? []);
+
+                if (latestClosed) {
+                    setStart(latestClosed.starts_on);
+                    setEnd(latestClosed.ends_on);
+                    setPeriodName(latestClosed.name);
+                }
+            } catch (e) {
+                setError(
+                    e instanceof Error
+                        ? e.message
+                        : "No fue posible cargar el último periodo cerrado."
+                );
+            } finally {
+                setPeriodReady(true);
+            }
         })();
     }, []);
 
     async function run() {
+        if (!periodReady || !start || !end) return;
+
         setLoading(true);
         setError("");
 
@@ -165,8 +196,11 @@ export default function MechanicsCommissionReportClient() {
     }
 
     useEffect(() => {
-        run();
+        if (periodReady) {
+            void run();
+        }
     }, [
+        periodReady,
         start,
         end,
         mechanic,
@@ -335,6 +369,11 @@ export default function MechanicsCommissionReportClient() {
                         exclusivamente sobre mano de
                         obra, nunca sobre repuestos.
                     </p>
+                    {periodName && (
+                        <div className="muted" style={{ marginTop: 8 }}>
+                            Periodo seleccionado automáticamente: {periodName}.
+                        </div>
+                    )}
                 </div>
 
                 <div

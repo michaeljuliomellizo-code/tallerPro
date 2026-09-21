@@ -33,6 +33,27 @@ export default function PortalLogin() {
 
       if (signInError) throw signInError;
 
+      const { data: authData } = await supabase.auth.getUser();
+
+      if (!authData.user) {
+        throw new Error("No fue posible validar la sesión del portal.");
+      }
+
+      const { data: portalUser, error: portalError } = await supabase
+        .from("customer_portal_users")
+        .select("user_id")
+        .eq("user_id", authData.user.id)
+        .maybeSingle();
+
+      if (portalError) throw portalError;
+
+      if (!portalUser) {
+        await supabase.auth.signOut();
+        throw new Error(
+          "Estas credenciales no están habilitadas para el portal del cliente."
+        );
+      }
+
       window.location.href = "/portal";
     } catch (err) {
       setError(

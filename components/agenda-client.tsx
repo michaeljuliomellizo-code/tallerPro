@@ -211,19 +211,18 @@ export default function AgendaClient() {
         startDate.getTime() + durationMinutes * 60_000
       );
 
-      const { error: insertError } = await supabase.from("appointments").insert({
-        organization_id: orgId,
-        customer_id: customerId,
-        motorcycle_id: motorcycleId || null,
-        mechanic_id: mechanicId || null,
-        starts_at: startDate.toISOString(),
-        ends_at: endDate.toISOString(),
-        service_type: serviceType.trim() || null,
-        status: "scheduled",
-        notes: notes.trim() || null,
+      const { error: rpcError } = await supabase.rpc("create_appointment", {
+        p_organization_id: orgId,
+        p_customer_id: customerId,
+        p_motorcycle_id: motorcycleId || null,
+        p_mechanic_id: mechanicId || null,
+        p_starts_at: startDate.toISOString(),
+        p_ends_at: endDate.toISOString(),
+        p_service_type: serviceType.trim() || null,
+        p_notes: notes.trim() || null,
       });
 
-      if (insertError) throw insertError;
+      if (rpcError) throw rpcError;
 
       setMessage("Cita creada correctamente.");
       setShowForm(false);
@@ -231,7 +230,9 @@ export default function AgendaClient() {
       await load();
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "No fue posible crear la cita."
+        err instanceof Error
+          ? `No fue posible crear la cita. ${err.message}`
+          : "No fue posible crear la cita."
       );
     } finally {
       setSaving(false);

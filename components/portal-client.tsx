@@ -81,10 +81,10 @@ type Invoice = {
 const ORDER_STATUS: Record<string, string> = {
   received: "Recibida",
   diagnosis: "Diagnóstico",
-  quoted: "Cotización pendiente",
+  quote: "Cotización pendiente",
   approved: "Aprobada",
-  in_progress: "En reparación",
-  quality_check: "Control de calidad",
+  repair: "En reparación",
+  quality: "Control de calidad",
   ready: "Lista para entrega",
   delivered: "Entregada",
   cancelled: "Cancelada",
@@ -92,7 +92,7 @@ const ORDER_STATUS: Record<string, string> = {
 
 function orderBadgeClass(status: string) {
   if (status === "cancelled") return "badge badge-danger";
-  if (status === "quoted") return "badge badge-warning";
+  if (status === "quote") return "badge badge-warning";
   if (status === "ready") return "badge badge-success";
   if (status === "delivered") return "badge";
   return "badge badge-success";
@@ -202,7 +202,7 @@ export default function PortalClient() {
   );
 
   const quoteOrders = orders.filter(
-    (order) => order.status === "quoted"
+    (order) => order.status === "quote"
   );
 
   const pendingInvoices = invoices.filter(
@@ -628,7 +628,7 @@ export default function PortalClient() {
                     {money(Number(order.total || 0))}
                   </div>
 
-                  {order.status === "quoted" && (
+                  {order.status === "quote" && (
                     <button
                       className="btn btn-secondary"
                       onClick={() => openQuote(order)}

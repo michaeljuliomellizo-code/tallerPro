@@ -1839,7 +1839,7 @@ export default function PosSalesHistory() {
 
                         <td>
                           {customer?.full_name ||
-                            "Consumidor final"}
+                            "Consumidor Final"}
 
                           {customer?.phone && (
                             <div className="muted">
@@ -2207,7 +2207,7 @@ export default function PosSalesHistory() {
 
                     <strong>
                       {selectedCustomer?.full_name ||
-                        "Consumidor final"}
+                        "Consumidor Final"}
                     </strong>
 
                     {selectedCustomer?.phone && (

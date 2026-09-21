@@ -13,6 +13,13 @@ type Product = {
   sale_price: number | string;
 };
 
+type Customer = {
+  id: string;
+  full_name: string;
+  document_number: string | null;
+  active: boolean;
+};
+
 type Mechanic = {
   id: string;
   full_name: string;
@@ -33,8 +40,10 @@ export default function QuickServicePosClient() {
   const [servicePrice, setServicePrice] = useState("0");
 
   const [products, setProducts] = useState<Product[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
   const [mechanics, setMechanics] = useState<Mechanic[]>([]);
 
+  const [customerId, setCustomerId] = useState("");
   const [productId, setProductId] = useState("");
   const [mechanicId, setMechanicId] = useState("");
 
@@ -53,8 +62,11 @@ export default function QuickServicePosClient() {
       try {
         setLoadingData(true);
 
-        const [{ data: productData, error: productError }, { data: mechanicData, error: mechanicError }] =
-          await Promise.all([
+        const [
+          { data: productData, error: productError },
+          { data: customerData, error: customerError },
+          { data: mechanicData, error: mechanicError },
+        ] = await Promise.all([
             supabase
               .from("inventory_products")
               .select(
@@ -64,6 +76,13 @@ export default function QuickServicePosClient() {
               .gt("stock", 0)
               .order("name")
               .limit(100),
+
+            supabase
+              .from("customers")
+              .select("id,full_name,document_number,active")
+              .eq("active", true)
+              .order("full_name")
+              .limit(200),
 
             supabase
               .from("mechanics")
@@ -76,12 +95,25 @@ export default function QuickServicePosClient() {
           throw productError;
         }
 
+        if (customerError) {
+          throw customerError;
+        }
+
         if (mechanicError) {
           throw mechanicError;
         }
 
+        const loadedCustomers = (customerData ?? []) as Customer[];
         setProducts(productData ?? []);
+        setCustomers(loadedCustomers);
         setMechanics(mechanicData ?? []);
+
+        const consumer = loadedCustomers.find(
+          (customer) => customer.document_number === "2222222222222"
+        );
+        if (consumer) {
+          setCustomerId((current) => current || consumer.id);
+        }
       } catch (error) {
         console.error(error);
 
@@ -272,6 +304,8 @@ export default function QuickServicePosClient() {
 
             p_payment_method: payment,
 
+            p_customer_id: customerId || null,
+
             /*
               Mecánico:
               - obligatorio si hay servicio
@@ -291,7 +325,7 @@ export default function QuickServicePosClient() {
       setMsg(
         `Venta rápida creada: ${
           data?.invoice_number ?? "sin factura"
-        } · ${money(
+        } · ${data?.customer_name ?? "Consumidor final"} · ${money(
           Number(data?.total ?? total)
         )}`
       );
@@ -331,7 +365,7 @@ export default function QuickServicePosClient() {
 
           <div className="muted">
             Venta de servicios y/o repuestos sin
-            crear cliente, moto ni orden de servicio.
+            crear moto ni orden de servicio. El cliente puede seleccionarse; sin selección se usa Consumidor final.
           </div>
         </div>
 
@@ -362,6 +396,25 @@ export default function QuickServicePosClient() {
       )}
 
       <div className="form-grid">
+        <div className="field" style={{ gridColumn: "1 / -1" }}>
+          <label>Cliente (opcional)</label>
+          <select
+            value={customerId}
+            onChange={(e) => setCustomerId(e.target.value)}
+            disabled={saving || loadingData}
+          >
+            <option value="">Consumidor Final · 2222222222222</option>
+            {customers.map((customer) => (
+              <option key={customer.id} value={customer.id}>
+                {customer.full_name}{customer.document_number ? ` · ${customer.document_number}` : ""}
+              </option>
+            ))}
+          </select>
+          <div className="muted" style={{ fontSize: 10, marginTop: 3 }}>
+            Cuando no selecciones un cliente, la venta queda asociada automáticamente a Consumidor final (2222222222222).
+          </div>
+        </div>
+
         {/* TIPO DE VENTA */}
 
         <div
@@ -474,18 +527,11 @@ export default function QuickServicePosClient() {
                   Seleccione un mecánico...
                 </option>
 
-                {mechanics.map(
-                  (mechanic) => (
-                    <option
-                      key={mechanic.id}
-                      value={mechanic.id}
-                    >
-                      {
-                        mechanic.full_name
-                      }
-                    </option>
-                  )
-                )}
+                {mechanics.map((mechanic) => (
+                  <option key={mechanic.id} value={mechanic.id}>
+                  {mechanic.full_name} 
+                  </option>
+                ))}
               </select>
 
               <div

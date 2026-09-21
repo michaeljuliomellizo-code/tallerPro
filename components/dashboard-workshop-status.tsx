@@ -7,10 +7,10 @@ import { getCurrentOrganizationId } from "@/lib/motomil/organization";
 const STATUS_LABELS: Array<[string, string]> = [
   ["received", "Recibidas"],
   ["diagnosis", "Diagnóstico"],
-  ["quoted", "Cotización"],
+  ["quote", "Cotización"],
   ["approved", "Aprobadas"],
-  ["in_progress", "Reparación"],
-  ["quality_check", "Calidad"],
+  ["repair", "Reparación"],
+  ["quality", "Calidad"],
   ["ready", "Listas"],
   ["delivered", "Entregadas"],
 ];

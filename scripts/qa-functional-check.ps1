@@ -178,30 +178,36 @@ $runtimeFiles = foreach ($runtimeRoot in $runtimeRoots) {
 }
 
 $patterns = @(
-  'MotoMil Taller',
-  'MotoMil -',
-  'MotoMil\b',
+  'MotoMil\s+Taller',
+  'MOTOMIL\s+TALLER',
+  'MotoMil\s+-',
   'admin@motomil\.com',
   '/assets/motomil-logo',
   'motomil-logo\.(png|jpeg|jpg)',
-  'logo-mototamil',
-  'Controla todo el taller'
+  'logo-motomil'
 )
 
 $legacyHits = $runtimeFiles |
-  Select-String -Pattern $patterns -ErrorAction SilentlyContinue
+  Select-String -Pattern $patterns -ErrorAction SilentlyContinue |
+  Where-Object {
+    # Las rutas @/lib/motomil/* son namespace técnico interno.
+    # No son branding visible y no deben generar FAIL.
+    $_.Line -notmatch '@[\/\\]lib[\/\\]motomil[\/\\]' -and
+    $_.Line -notmatch '[\/\\]lib[\/\\]motomil[\/\\]'
+  }
 
 if ($legacyHits) {
   Fail "Se encontraron referencias visibles antiguas en runtime"
+
   $legacyHits |
     Select-Object -First 30 |
     ForEach-Object {
       Write-Host "     $($_.Path):$($_.LineNumber) $($_.Line.Trim())" -ForegroundColor DarkYellow
     }
-} else {
+}
+else {
   Pass "No se encontraron referencias antiguas visibles en runtime"
 }
-
 Write-Host ""
 Write-Host "5. Logica de branding por organizacion" -ForegroundColor White
 

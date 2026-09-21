@@ -16,6 +16,8 @@ import { createClient } from "@/lib/supabase/client";
 import { Status, Timeline } from "@/components/module-page";
 import { money } from "@/lib/utils";
 import ServiceOrderPhotos from "@/components/service-order-photos-client";
+import ServiceOrderPartsClient from "@/components/service-order-parts-client";
+import ServiceOrderLaborClient from "@/components/service-order-labor-client";
 import TecnomecanicaAlert from "@/components/tecnomecanica-alert";
 
 type OrderStatus =
@@ -52,6 +54,18 @@ type Mechanic = {
   full_name: string;
   specialty: string | null;
   phone: string | null;
+};
+
+type ServiceOrderItem = {
+  id: string;
+  item_type: "service" | "part" | "labor" | "other";
+  mechanic_id: string | null;
+  inventory_product_id: string | null;
+  description: string;
+  quantity: number;
+  unit_cost: number;
+  unit_price: number;
+  created_at: string;
 };
 
 type ServiceOrder = {
@@ -150,6 +164,7 @@ export default function OrdersDetailClient({
 
   const [order, setOrder] = useState<ServiceOrder | null>(null);
   const [mechanics, setMechanics] = useState<Mechanic[]>([]);
+  const [orderItems, setOrderItems] = useState<ServiceOrderItem[]>([]);
 
   const [reportedProblem, setReportedProblem] = useState("");
   const [diagnosis, setDiagnosis] = useState("");
@@ -261,6 +276,15 @@ export default function OrdersDetailClient({
     );
     const loadedMotorcycle = one(normalized.motorcycle);
     setTecnomecanicaDate(loadedMotorcycle?.tecnomecanica_date ?? "");
+
+    const { data: itemsData, error: itemsError } = await supabase
+      .from("service_order_items")
+      .select("id, item_type, mechanic_id, inventory_product_id, description, quantity, unit_cost, unit_price, created_at")
+      .eq("service_order_id", normalized.id)
+      .order("created_at", { ascending: true });
+
+    if (itemsError) throw itemsError;
+    setOrderItems((itemsData ?? []) as ServiceOrderItem[]);
   }
 
   async function loadMechanics() {
@@ -463,6 +487,32 @@ export default function OrdersDetailClient({
       setSaving(false);
     }
   }
+
+  const laborItems = orderItems.filter(
+    (item) => item.item_type === "service" || item.item_type === "labor"
+  );
+
+  const partItems = orderItems.filter((item) => item.item_type === "part");
+
+  const laborSale = laborItems.reduce(
+    (sum, item) => sum + Number(item.quantity || 0) * Number(item.unit_price || 0),
+    0,
+  );
+
+  const partsSale = partItems.reduce(
+    (sum, item) => sum + Number(item.quantity || 0) * Number(item.unit_price || 0),
+    0,
+  );
+
+  const partsCost = partItems.reduce(
+    (sum, item) => sum + Number(item.quantity || 0) * Number(item.unit_cost || 0),
+    0,
+  );
+
+  const directCosts = partsCost;
+  const orderSubtotal = Number(order?.subtotal || 0);
+  const grossProfit = orderSubtotal - directCosts;
+  const grossMargin = orderSubtotal > 0 ? (grossProfit / orderSubtotal) * 100 : 0;
 
   async function saveTecnomecanicaDate() {
     if (!motorcycle) return;
@@ -987,58 +1037,27 @@ export default function OrdersDetailClient({
             <FileText size={16} />
           </div>
 
-          <div
-            style={{
-              fontSize: 12,
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                padding: "6px 0",
-              }}
-            >
+          <div style={{ fontSize: 12 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0" }}>
+              <span>Mano de obra</span>
+              <strong>{money(laborSale)}</strong>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0" }}>
+              <span>Repuestos</span>
+              <strong>{money(partsSale)}</strong>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0" }}>
               <span>Subtotal</span>
-              <strong>
-                {money(Number(order.subtotal))}
-              </strong>
+              <strong>{money(orderSubtotal)}</strong>
             </div>
-
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                padding: "6px 0",
-              }}
-            >
+            <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0" }}>
               <span>Impuestos</span>
-              <strong>
-                {money(Number(order.tax))}
-              </strong>
+              <strong>{money(Number(order.tax || 0))}</strong>
             </div>
-
-            <hr
-              style={{
-                border: 0,
-                borderTop:
-                  "1px solid #e5e9e8",
-              }}
-            />
-
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                padding: "8px 0",
-                fontSize: 16,
-              }}
-            >
+            <hr style={{ border: 0, borderTop: "1px solid #e5e9e8" }} />
+            <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", fontSize: 16 }}>
               <strong>Total</strong>
-
-              <strong>
-                {money(Number(order.total))}
-              </strong>
+              <strong>{money(Number(order.total || 0))}</strong>
             </div>
           </div>
         </div>
@@ -1049,56 +1068,18 @@ export default function OrdersDetailClient({
             <CalendarClock size={16} />
           </div>
 
-          <div
-            className="grid"
-            style={{ gap: 10 }}
-          >
+          <div className="grid" style={{ gap: 10 }}>
             <div>
-              <span className="muted">
-                Recepción
-              </span>
-
-              <strong
-                style={{
-                  display: "block",
-                }}
-              >
-                {formatDateTime(
-                  order.received_at
-                )}
-              </strong>
+              <span className="muted">Recepción</span>
+              <strong style={{ display: "block" }}>{formatDateTime(order.received_at)}</strong>
             </div>
-
             <div>
-              <span className="muted">
-                Entrega estimada
-              </span>
-
-              <strong
-                style={{
-                  display: "block",
-                }}
-              >
-                {formatDateTime(
-                  order.estimated_delivery_at
-                )}
-              </strong>
+              <span className="muted">Entrega estimada</span>
+              <strong style={{ display: "block" }}>{formatDateTime(order.estimated_delivery_at)}</strong>
             </div>
-
             <div>
-              <span className="muted">
-                Entrega real
-              </span>
-
-              <strong
-                style={{
-                  display: "block",
-                }}
-              >
-                {formatDateTime(
-                  order.delivered_at
-                )}
-              </strong>
+              <span className="muted">Entrega real</span>
+              <strong style={{ display: "block" }}>{formatDateTime(order.delivered_at)}</strong>
             </div>
           </div>
         </div>
@@ -1107,33 +1088,53 @@ export default function OrdersDetailClient({
       <div style={{ height: 16 }} />
 
       <div className="grid grid-2">
-        <div className="card">
-          <div className="section-head">
-            <h2>Repuestos utilizados</h2>
-            <Wrench size={16} />
-          </div>
+        <ServiceOrderLaborClient
+          serviceOrderId={order.id}
+          orderStatus={order.status}
+          defaultMechanicId={order.mechanic_id}
+          onChanged={() => void loadOrder()}
+        />
 
-          <div className="empty">
-            Aún no hay repuestos asociados.
-            <br />
-            Este módulo se conectará cuando
-            implementemos Inventario.
+        <ServiceOrderPartsClient
+          serviceOrderId={order.id}
+          orderStatus={order.status}
+          onChanged={() => void loadOrder()}
+        />
+      </div>
+
+      <div style={{ height: 16 }} />
+
+      <div className="card">
+        <div className="section-head">
+          <div>
+            <h2>Rentabilidad de la orden</h2>
+            <div className="muted" style={{ fontSize: 11, marginTop: 4 }}>
+              Ingresos de la orden menos el costo real de los repuestos consumidos.
+            </div>
+          </div>
+          <span className={`badge ${grossProfit >= 0 ? "badge-success" : "badge-danger"}`}>
+            {grossMargin.toFixed(1)}% margen
+          </span>
+        </div>
+
+        <div className="grid grid-4">
+          <div className="card">
+            <div className="muted">Ingresos sin impuesto</div>
+            <strong>{money(orderSubtotal)}</strong>
+          </div>
+          <div className="card">
+            <div className="muted">Costo repuestos</div>
+            <strong>{money(partsCost)}</strong>
+          </div>
+          <div className="card">
+            <div className="muted">Utilidad bruta</div>
+            <strong>{money(grossProfit)}</strong>
           </div>
         </div>
 
-        <div className="card">
-          <div className="section-head">
-            <h2>Rentabilidad</h2>
-            <span className="badge">
-              Pendiente
-            </span>
-          </div>
-
-          <div className="empty">
-            La rentabilidad se calculará cuando
-            conectemos mano de obra, repuestos,
-            costos y facturación.
-          </div>
+        <div style={{ marginTop: 12, display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", fontSize: 12 }}>
+          <span className="muted">Costos directos registrados: {money(directCosts)}</span>
+          <strong>Margen: {grossMargin.toFixed(1)}%</strong>
         </div>
       </div>
 
