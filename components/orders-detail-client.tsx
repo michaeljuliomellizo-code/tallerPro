@@ -19,6 +19,7 @@ import ServiceOrderPhotos from "@/components/service-order-photos-client";
 import ServiceOrderPartsClient from "@/components/service-order-parts-client";
 import ServiceOrderLaborClient from "@/components/service-order-labor-client";
 import TecnomecanicaAlert from "@/components/tecnomecanica-alert";
+import ServiceOrderPrintButton from "@/components/service-order-print-button";
 
 type OrderStatus =
   | "received"
@@ -679,7 +680,7 @@ export default function OrdersDetailClient({
             )}
           </p>
         </div>
-
+        <ServiceOrderPrintButton orderId={order.id} />
         <Status tone={STATUS_TONES[status]}>
           {STATUS_LABELS[status]}
         </Status>
